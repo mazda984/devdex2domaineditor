@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Önizleme</title>
+  <style>
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:#fff}
+    .notice{position:fixed;left:12px;top:12px;background:#fff;border:1px solid #eee;padding:8px 10px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <div class="notice" id="notice" style="display:none"></div>
+  <script>
+    // read query parameters
+    function param(name){
+      const u = new URL(location.href);
+      return u.searchParams.get(name);
+    }
+    const id = param('id');
+    const dataEncoded = param('data');
+    const notice = document.getElementById('notice');
+
+    // if data parameter provided, decode and render immediately (works across browsers/users)
+    if(dataEncoded){
+      try{
+        const html = decodeURIComponent(atob(dataEncoded));
+        document.open();
+        document.write(html);
+        document.close();
+      }catch(e){
+        console.warn('data decoding failed', e);
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><h2>Geçersiz önizleme verisi</h2><p>Veri çözümlenemedi.</p></div></div>';
+      }
+    } else if(id) {
+      const html = localStorage.getItem(id);
+      if(!html){
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><h2>Kaydedilmiş içerik bulunamadı</h2><p>İçerik yerel depolamada mevcut değil veya silinmiş.</p></div></div>';
+      } else {
+        // inject the saved html into the page
+        document.open();
+        document.write(html);
+        document.close();
+      }
+    } else {
+      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><h2>Geçersiz önizleme id</h2><p>URL parametresinde id veya data bulunamadı.</p></div></div>';
+    }
+  </script>
+</body>
+</html>
