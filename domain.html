@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Domain Seç</title>
+  <style>
+    :root{--bg:#f7f7f8;--card:#fff;--accent:#0b8457;--muted:#7a7a82}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:18px}
+    .card{width:100%;max-width:520px;background:var(--card);padding:16px;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,0.06)}
+    h1{margin:0 0 8px 0;font-size:18px}
+    .options{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+    label{background:#fbfbfc;padding:8px;border-radius:8px;border:1px solid #f0f0f2;color:var(--muted);display:flex;gap:8px;align-items:center}
+    button{background:var(--accent);color:#fff;border:none;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+    .note{font-size:13px;color:var(--muted);margin-top:8px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Domain Seç ve Oluştur</h1>
+    <div class="options">
+      <label><input type="checkbox" value=".com" checked /> .com</label>
+      <label><input type="checkbox" value=".net" /> .net</label>
+      <label><input type="checkbox" value=".org" /> .org</label>
+      <label><input type="checkbox" value=".xyz" /> .xyz</label>
+      <label><input type="checkbox" value=".dev" /> .dev</label>
+      <label><input type="checkbox" value=".site" /> .site</label>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center">
+      <button id="createBtn">Oluştur</button>
+    </div>
+    <div class="note">"Oluştur" tıklandığında seçilen uzantılardan rastgele bir domain oluşturulup yeni önizleme sekmesi açılır.</div>
+  </div>
+
+  <script>
+    function getSelectedTlds(){ return Array.from(document.querySelectorAll('.options input[type=checkbox]:checked')).map(i=>i.value) }
+    function randLabel(len){ const chars='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'; let s=''; for(let i=0;i<len;i++) s+=chars.charAt(Math.floor(Math.random()*chars.length)); return s }
+    document.getElementById('createBtn').addEventListener('click', ()=>{
+      const tlds = getSelectedTlds(); if(!tlds.length) { alert('En az bir uzantı seçin'); return }
+      const L = 10 + Math.floor(Math.random()*4);
+      const name = randLabel(L) + tlds[Math.floor(Math.random()*tlds.length)];
+      const storageKey = `site_${name}`;
+      const html = `<!doctype html>
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${name}</title>
+  <meta name="description" content="Oluşturulmuş geçici site: ${name}">
+  <meta property="og:title" content="${name}">
+</head>
+<body style="font-family:system-ui,Arial;display:flex;align-items:center;justify-content:center;height:100vh">
+  <div style="text-align:center">
+    <h1>${name}</h1>
+    <p>Oluşturuldu.</p>
+  </div>
+</body>
+</html>`;
+      try{ localStorage.setItem(storageKey, html) }catch(e){ console.warn('localStorage fail', e) }
+      const u = `${location.origin}${location.pathname.replace(/\/[^/]*$/, '/') || '/'}preview.html?id=${encodeURIComponent(storageKey)}`;
+      window.open(u, '_blank');
+    });
+  </script>
+</body>
+</html>
