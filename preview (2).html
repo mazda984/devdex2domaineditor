@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Önizleme</title>
+  <style>
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:#fff}
+    .notice{position:fixed;left:12px;top:12px;background:#fff;border:1px solid #eee;padding:8px 10px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <div class="notice" id="notice" style="display:none"></div>
+  <script>
+    // read query parameters
+    function param(name){
+      const u = new URL(location.href);
+      return u.searchParams.get(name);
+    }
+    const id = param('id');
+    const dataEncoded = param('data');
+    const notice = document.getElementById('notice');
+
+    // Config: raw GitHub base URL where saved site files live (adjust to your repo)
+    // Example: https://raw.githubusercontent.com/USERNAME/REPO/BRANCH/sites
+    const GITHUB_RAW_BASE = ''; // <-- set to your raw.githubusercontent.com path if using repo-hosted files
+
+    function showMessage(title, text){
+      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><h2>'+title+'</h2><p>'+text+'</p></div></div>';
+    }
+
+    // helper to try fetch from GitHub raw URL for given id (id expected like "site_name" or similar)
+    async function tryFetchFromRepo(idKey){
+      if(!GITHUB_RAW_BASE) return null;
+      // attempt multiple filename patterns: id, id.html, without 'site_' prefix, etc.
+      const candidates = [];
+      candidates.push(idKey);
+      if(idKey.endsWith('.html') === false) candidates.push(idKey + '.html');
+      if(idKey.startsWith('site_')) candidates.push(idKey.replace(/^site_/, ''));
+      if(idKey.startsWith('site_')) candidates.push(idKey.replace(/^site_/, '') + '.html');
+
+      for(const name of candidates){
+        const url = GITHUB_RAW_BASE.replace(/\/$/, '') + '/' + encodeURIComponent(name);
+        try{
+          const res = await fetch(url, {cache: 'no-cache'});
+          if(res.ok){
+            const text = await res.text();
+            if(text && text.trim().length) return text;
+          }
+        }catch(e){
+          // ignore and try next
+          console.warn('repo fetch failed for', url, e);
+        }
+      }
+      return null;
+    }
+
+    // if data parameter provided, decode and render immediately (works across browsers/users)
+    (async function(){
+      if(dataEncoded){
+        try{
+          const html = decodeURIComponent(atob(dataEncoded));
+          document.open();
+          document.write(html);
+          document.close();
+          return;
+        }catch(e){
+          console.warn('data decoding failed', e);
+          showMessage('Geçersiz önizleme verisi', 'Veri çözümlenemedi.');
+          return;
+        }
+      } else if(id) {
+        // first try localStorage
+        const html = localStorage.getItem(id);
+        if(html){
+          document.open();
+          document.write(html);
+          document.close();
+          return;
+        }
+
+        // try to fetch from configured GitHub raw repo path
+        const repoHtml = await tryFetchFromRepo(id);
+        if(repoHtml){
+          // cache into localStorage for faster subsequent loads (silently ignore storage failures)
+          try{ localStorage.setItem(id, repoHtml); }catch(e){/* ignore */ }
+          document.open();
+          document.write(repoHtml);
+          document.close();
+          return;
+        }
+
+        // fallback message explaining missing content and hint to use "data" param
+        showMessage('Kaydedilmiş içerik bulunamadı', 'İçerik yerel depolamada mevcut değil veya silinmiş. Eğer repo kullandıysanız GITHUB_RAW_BASE değişkenini ayarlayın veya paylaşılabilir "data" parametresiyle önizleme oluşturun.');
+      } else {
+        showMessage('Geçersiz önizleme id', 'URL parametresinde id veya data bulunamadı.');
+      }
+    })();
+  </script>
+</body>
+</html>
